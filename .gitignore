@@ -1,0 +1,28 @@
+# Standard Ignore
+# Swap
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+# Session
+Session.vim
+# Temporary
+.netrwhist
+*~
+# auto-generated tag files
+tags
+# Package Files #
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# VScode Ignore
+# Ignore the VScode settings folder
+.vscode/
+
+# Ignore the VScode workspace
+*.code-workspace
+
+# Ignore Log files
+*.log
