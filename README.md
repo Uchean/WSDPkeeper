@@ -1,4 +1,4 @@
-![License](https://img.shields.io/github/license/:zhurui1008/:WSDPkeeper)
+![License](https://img.shields.io/github/license/zhurui1008/WSDPkeeper)
 
 
 # WSDPkeeper (Windows Spotlight Daily Photo keeper)
