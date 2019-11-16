@@ -65,30 +65,23 @@ function calcMvitems {
         # Write-Host($Target.Count)
         # Write-Host($Local.Count)
         $moveItems = New-Object System.Collections.Generic.List[System.Object]
-        if ($Target.Count -gt 0 -And $Local.Count -gt 0)
+        if ($Target.Path -And $Local.Path)
         {
-            for ($i=0;$i -lt $Target.Count; $i++)
+            foreach ($itemT in $Target)
             {
                 $z=0
-                for($n=0; $n -lt $Local.Count; $n++)
+                foreach ($itemN in $Local)
                 {
-                    if ($Target[$i].Hash -eq $Local[$n].Hash)
-                    {
-                        $z++
-                    }
-                    if ($z) {break}
+                    if ($itemT.Hash -eq $itemN.Hash){$z++;break}
                 }
-                if ($z -eq 0)
-                {
-                $moveItems.Add($Target[$i])
-                }
+                if (-not $z){$moveItems.Add($itemT.Path)}
             }
         }
-        elseif ($Target.Count -gt 0 -And $Local.Count -eq 0)
+        elseif ($Target.Path -And -not $Local.Path)
         {
-            for ($i=0; $i -lt $Target.Count; $i++)
+            foreach ($item in $Target)
             {
-                $moveItems.add($Target[$i])
+                $moveItems.add($item.Path)
             }
         }
         # Write-Host($moveItems.Count)
@@ -100,16 +93,16 @@ function cpAction {
     param (
         $moveItems,
         [String]$tarPath,
-        [String]$fileNmae="_Windows_Spotlight_"
+        [String]$Infix="_Windows_Spotlight_"
     )
     Process{
         $Metadata = New-Object System.Collections.Generic.List[System.Object]
 
-        if ($moveItems.Path.Count) {
+        if ($moveItems) {
             $i=0
             foreach ($item in $moveItems)
             {
-                $Metadata.Add((Get-ChildItem $item.Path | Get-Image | Select-Object Width, Height))
+                $Metadata.Add((Get-ChildItem $item | Get-Image | Select-Object Width, Height))
                 if($Metadata[-1].Width -gt $Metadata[-1].Height)
                 { 
                     $shapeSpec = "H"
@@ -117,10 +110,11 @@ function cpAction {
                 else{
                     $shapeSpec = "V"
                 }
-
-                Write-Host ("Resolution: " + $Metadata[-1].Width + " x " + $Metadata[-1].Height + $item.Name + "`t" + $shapeSpec)
-                Copy-Item $item.Path ($tarPath + "\" + $shapeSpec + $fileNmae + (Get-Date -UFormat "%Y%m%d%H%M_") + ("{0:d4}" -f $i) + ".jpg")
-                Write-Host ($tarPath + "\" + $shapeSpec + $fileNmae + (Get-Date -UFormat "%Y%m%d%H%M_") + ("{0:d4}" -f $i) + ".jpg")
+                $newItemName=($shapeSpec + $Infix + (Get-Date -UFormat "%Y%m%d%H%M_") + ("{0:d4}" -f $i) + ".jpg")
+                $Resolution=("$($Metadata[-1].Width) x $($Metadata[-1].Height)")
+                Write-Host ("Resolution:`t$Resolution`t$newItemName")
+                Copy-Item $item ("$tarPath\$newItemName")
+                Write-Host ("$tarPath\$newItemName")
                 $i++
             }
             notify("Copying done!")
@@ -205,13 +199,13 @@ function main {
         $MoveItems_V = New-Object System.Collections.Generic.List[System.Object]
     
         banner
-        $TargetFiles = Get-ChildItem $TargetPath
+        $TargetFiles =(Get-ChildItem $TargetPath)
     
-        foreach($i in $TargetFiles){
-            switch (HVdiff -targetF $i)
+        foreach($item in $TargetFiles){
+            switch (HVdiff -targetF $item)
             {
-                0 {$TargetfHashes_H += (Get-FileHash $i.FullName)}
-                1 {$TargetfHashes_V += (Get-FileHash $i.FullName)}
+                0 {$TargetfHashes_H += (Get-FileHash $item.FullName)}
+                1 {$TargetfHashes_V += (Get-FileHash $item.FullName)}
                 Default {}
             }
         }
@@ -225,23 +219,23 @@ function main {
         $MoveItems_H = (calcMvitems -Target $TargetfHashes_H -Local $LocalfHashes_H)
         $MoveItems_V = (calcMvitems -Target $TargetfHashes_V -Local $LocalfHashes_V)
         
-        if ($MoveItems_H.Path.Count) {
+        if ($MoveItems_H) {
             notify("Horizontal Photos")
             foreach ($item in $MoveItems_H){
-                Write-Host($item.Path)
-                Write-Host("="*48)
+                Write-Host(Split-Path $item -Leaf)
+                Write-Host("-"*33)
             }        
         }
     
-        if ($MoveItems_V.Path.Count) {
+        if ($MoveItems_V) {
             notify("Vertical   Photos")
             foreach ($item in $MoveItems_V){
-                Write-Host($item.Path)
-                Write-Host("="*48)
+                Write-Host(Split-Path $item -Leaf)
+                Write-Host("-"*33)
             }
         }
     
-        if ($MoveItems_H.Path.Count -or $MoveItems_V.Path.Count) {
+        if ($MoveItems_H -or $MoveItems_V) {
             notify("Copying new photo(s) to saving folder...")
             cpAction -MoveItems $MoveItems_H -tarPath $LocalPath_H
             cpAction -MoveItems $MoveItems_V -tarPath $LocalPath_V
