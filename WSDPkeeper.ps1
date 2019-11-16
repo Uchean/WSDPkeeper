@@ -100,7 +100,7 @@ function cpAction {
     param (
         $moveItems,
         [String]$tarPath,
-        [String]$shapeSpec=""
+        [String]$fileNmae="_Windows_Spotlight_"
     )
     Process{
         $Metadata = New-Object System.Collections.Generic.List[System.Object]
@@ -119,8 +119,8 @@ function cpAction {
                 }
 
                 Write-Host ("Resolution: " + $Metadata[-1].Width + " x " + $Metadata[-1].Height + $item.Name + "`t" + $shapeSpec)
-                Copy-Item $item.Path ($tarPath + "\" + $shapeSpec + "_Windows10_Focus_" + (Get-Date -UFormat "%Y%m%d%H%M_") + ("{0:d4}" -f $i) + ".jpg")
-                Write-Host ($tarPath + "\" + $shapeSpec + "_Windows10_Focus_" + (Get-Date -UFormat "%Y%m%d%H%M_") + ("{0:d4}" -f $i) + ".jpg")
+                Copy-Item $item.Path ($tarPath + "\" + $shapeSpec + $fileNmae + (Get-Date -UFormat "%Y%m%d%H%M_") + ("{0:d4}" -f $i) + ".jpg")
+                Write-Host ($tarPath + "\" + $shapeSpec + $fileNmae + (Get-Date -UFormat "%Y%m%d%H%M_") + ("{0:d4}" -f $i) + ".jpg")
                 $i++
             }
             notify("Copying done!")
