@@ -19,7 +19,7 @@ Includes:
 
 - [x] Repetition checking. (Only pulling new items)
 
-- [x] Rename photos with format `{H|V}_WSDPhoto_{YYYY-MM-DD-hh-mm}_{nnnn}.jpg`
+- [x] Rename photos with format `{H|V}_Windows_Spotlight_{YYYY-MM-DD-hh-mm}_{nnnn}.jpg`
 
 # Usages
 ## Executing directly
