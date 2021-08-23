@@ -7,27 +7,27 @@
  ##: ##: ##:'##::: ##: ##::::::::::: ##:. ##:: ##::::::: ##::::::: ##:::::::: ##::::::: ##::. ##::
 . ###. ###::. ######:: ##::::::::::: ##::. ##: ########: ########: ##:::::::: ########: ##:::. ##:
 :...::...::::......:::..::::::::::::..::::..::........::........::..:::::::::........::..:::::..::
-Windows Spotlight Photo keeper                                            Version 0.0.1 by Rui Zhu
-MIT License                                                                     Copyright (c) 2019
+Windows Spotlight Photo keeper                                            Version 0.0.2 by Rui Zhu
+MIT License                                                                     Copyright (c) 2021
 #>
 
 $ErrorActionPreference = "stop"
 
 function Get-Image{
     begin{        
-         Add-Type -assembly System.Drawing
+        Add-Type -assembly System.Drawing
     } 
-     process{
-          $fi=[System.IO.FileInfo]$_.FullName
-          if( $fi.Exists){
-               $img = [System.Drawing.Image]::FromFile($_.FullName)
-               $img.Clone()
-               $img.Dispose()       
-          }else{
-               Write-Output ("File not found: " + $_.Name) -fore yellow       
-          }
-          Remove-Variable fi
-     }    
+    process{
+        $fi=[System.IO.FileInfo]$_.FullName
+        if( $fi.Exists){
+            $img = [System.Drawing.Image]::FromFile($_.FullName)
+            $img.Clone()
+            $img.Dispose()       
+        }else{
+            Write-Output ("File not found: " + $_.Name) -fore yellow       
+        }
+        Remove-Variable fi
+    }    
 }
 
 function HVdiff {
@@ -65,25 +65,16 @@ function calcMvitems {
         # Write-Host($Target.Count)
         # Write-Host($Local.Count)
         $moveItems = New-Object System.Collections.Generic.List[System.Object]
-        if ($Target.Path -And $Local.Path)
-        {
-            foreach ($itemT in $Target)
-            {
-                $z=0
-                foreach ($itemN in $Local)
-                {
-                    if ($itemT.Hash -eq $itemN.Hash){$z++;break}
-                }
-                if (-not $z){$moveItems.Add($itemT.Path)}
+        if ($Local.Count -gt 0) {
+            foreach ($itemT in $Target){
+                if (-not ($Local -match $itemT.hash)){$moveItems.Add($itemT.Path)}
+            }
+        }else{
+            foreach ($itemT in $Target){
+                $moveItems.Add($itemT.Path)
             }
         }
-        elseif ($Target.Path -And -not $Local.Path)
-        {
-            foreach ($item in $Target)
-            {
-                $moveItems.add($item.Path)
-            }
-        }
+
         # Write-Host($moveItems.Count)
         return $moveItems
     }
@@ -143,6 +134,26 @@ function notify ([String]$headString) {
     Write-Host("-"*$strLength)
 }
 
+function pathSolver {
+    param (
+        [String]$path,
+        [bool]$type=1
+    )
+        process {
+        if (-not (Test-Path $path)){
+            switch ($type) {
+                0 {New-Item -Path $path -ItemType Directory}
+                1 {New-Item -Path $path -ItemType File}
+                Default {}
+            }
+            return 1
+        }
+        else{
+            return 0
+        }
+    }
+}
+
 function banner {
     $bannerString=
 @"
@@ -166,35 +177,44 @@ function banner {
     Write-Host($fullNameString + " "*$($strLength - $fullNameString.Length - $versionInfo.Length -$authorInfo.Length) + $versionInfo + $authorInfo)
 }
 
-function pathSolver ([String]$path) {
-    if (-not (Resolve-Path $path)) {
-        New-Item -Path $path -ItemType Directory
-    }
-}
 function main {
 
     $TargetPath  = "$env:USERPROFILE\AppData\Local\Packages\Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy\LocalState\Assets"
     $workingDir  = "$env:USERPROFILE\Pictures"
     $LocalPath_H = "$workingDir\Saved Pictures\Horizontal"
     $LocalPath_V = "$workingDir\Saved Pictures\Vertical"
-    
+    $Local_HfhashP = "$PSScriptRoot\.H_imgHashes.log"
+    $Local_VfhashP = "$PSScriptRoot\.V_imgHashes.log"
 
-    pathSolver($workingDir)
-    if ($(Get-Location).Path -eq $workingDir) {
+    (pathSolver $workingDir -type 0) | Out-Null
+    if ($(Get-Location).Path -ne $workingDir) {
         Set-Location $workingDir
     }
 
     foreach ($item in $TargetPath,$LocalPath_H,$LocalPath_V) {
-        pathSolver($item)
+        (pathSolver $item -type 0) |Out-Null
     }
 
-    if ((Resolve-Path $TargetPath) -and (Resolve-Path $LocalPath_H) -and (Resolve-Path $LocalPath_V)) {
+    foreach ($item in $Local_HfhashP,$Local_VfhashP) {
+        if(pathSolver $item){
+            switch ($item)
+            {
+                $Local_HfhashP {
+                    Get-ChildItem -Path $LocalPath_H\* -Include *.jpg,*.png | ForEach-Object -Process {(Get-FileHash $_).hash} | Tee-Object $Local_HfhashP}
+                $Local_VfhashP {
+                    Get-ChildItem -Path $LocalPath_V\* -Include *.jpg,*.png | ForEach-Object -Process {(Get-FileHash $_).hash} | Tee-Object $Local_VfhashP}
+                Default{}
+            }
+        }
+    }
+
+    # Write-Host("Dirs/files check complete!")
+
+    if ((Test-Path $TargetPath) -and (Test-Path $LocalPath_H) -and (Test-Path $LocalPath_V)) {
 
         $TargetfHashes_H = New-Object System.Collections.Generic.List[System.Object]
         $TargetfHashes_V = New-Object System.Collections.Generic.List[System.Object]
-        $LocalfHashes_H = New-Object System.Collections.Generic.List[System.Object]
-        $LocalfHashes_V = New-Object System.Collections.Generic.List[System.Object]
-    
+
         $MoveItems_H = New-Object System.Collections.Generic.List[System.Object]
         $MoveItems_V = New-Object System.Collections.Generic.List[System.Object]
     
@@ -210,12 +230,9 @@ function main {
             }
         }
     
-        $LocalFiles_H = Get-ChildItem $LocalPath_H\* -Include *.jpg, *.png
-        $LocalFiles_H | ForEach-Object -Process {$LocalfHashes_H += (Get-FileHash $_.FullName)}
-    
-        $LocalFiles_V = Get-ChildItem $LocalPath_V\* -Include *.jpg, *.png
-        $LocalFiles_V | ForEach-Object -Process {$LocalfHashes_V += (Get-FileHash $_.FullName)}
-    
+        $LocalfHashes_H = Get-Content $Local_HfhashP
+        $LocalfHashes_V = Get-Content $Local_VfhashP
+
         $MoveItems_H = (calcMvitems -Target $TargetfHashes_H -Local $LocalfHashes_H)
         $MoveItems_V = (calcMvitems -Target $TargetfHashes_V -Local $LocalfHashes_V)
         
@@ -238,7 +255,9 @@ function main {
         if ($MoveItems_H -or $MoveItems_V) {
             notify("Copying new photo(s) to saving folder...")
             cpAction -MoveItems $MoveItems_H -tarPath $LocalPath_H
+            $MoveItems_H.hash | Tee-Object $Local_HfhashP
             cpAction -MoveItems $MoveItems_V -tarPath $LocalPath_V
+            $MoveItems_V.hash | Tee-Object $Local_VfhashP
         }else {
             notify("No new photo(s)!!!")
         }
@@ -250,4 +269,4 @@ If ((Resolve-Path -Path $MyInvocation.InvocationName).ProviderPath -eq $MyInvoca
     main
     $endDTM=(Get-Date)
     Write-Host("Elapsed Time: $(($endDTM-$startDTM).totalseconds) seconds")
-  }
+}
