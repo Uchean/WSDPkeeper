@@ -26,3 +26,6 @@ tags
 
 # Ignore Log files
 *.log
+
+#ignore Nutstore file sync file
+.nssyncsc
