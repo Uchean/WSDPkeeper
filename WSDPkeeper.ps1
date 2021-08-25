@@ -60,10 +60,7 @@ function HVdiff {
 
 function calcMvitems {
     param ($Target, $Local)
-    Process
-    {
-        # Write-Host($Target.Count)
-        # Write-Host($Local.Count)
+    Process{
         $moveItems = New-Object System.Collections.Generic.List[System.Object]
         if ($Local.Count -gt 0) {
             foreach ($itemT in $Target){
@@ -74,8 +71,6 @@ function calcMvitems {
                 $moveItems.Add($itemT.Path)
             }
         }
-
-        # Write-Host($moveItems.Count)
         return $moveItems
     }
 }
@@ -196,13 +191,12 @@ function main {
     }
 
     foreach ($item in $Local_HfhashP,$Local_VfhashP) {
-        if(pathSolver $item){
-            switch ($item)
-            {
-                $Local_HfhashP {
-                    Get-ChildItem -Path $LocalPath_H\* -Include *.jpg,*.png | ForEach-Object -Process {(Get-FileHash $_).hash} | Tee-Object $Local_HfhashP}
-                $Local_VfhashP {
-                    Get-ChildItem -Path $LocalPath_V\* -Include *.jpg,*.png | ForEach-Object -Process {(Get-FileHash $_).hash} | Tee-Object $Local_VfhashP}
+        if((pathSolver $item) -or ((Get-Content $item).Count) -eq 0){
+            switch ($item){
+                $Local_HfhashP{
+                    Get-ChildItem -Path $LocalPath_H\* -Include *.jpg,*.png | ForEach-Object -Process {(Get-FileHash $_).hash} | Add-Content $Local_HfhashP}
+                $Local_VfhashP{
+                    Get-ChildItem -Path $LocalPath_V\* -Include *.jpg,*.png | ForEach-Object -Process {(Get-FileHash $_).hash} | Add-Content $Local_VfhashP}
                 Default{}
             }
         }
@@ -255,9 +249,9 @@ function main {
         if ($MoveItems_H -or $MoveItems_V) {
             notify("Copying new photo(s) to saving folder...")
             cpAction -MoveItems $MoveItems_H -tarPath $LocalPath_H
-            $MoveItems_H.hash | Tee-Object $Local_HfhashP
+            $MoveItems_H.hash | Add-Content $Local_HfhashP
             cpAction -MoveItems $MoveItems_V -tarPath $LocalPath_V
-            $MoveItems_V.hash | Tee-Object $Local_VfhashP
+            $MoveItems_V.hash | Add-Content $Local_VfhashP
         }else {
             notify("No new photo(s)!!!")
         }
