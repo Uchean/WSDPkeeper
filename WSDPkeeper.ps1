@@ -249,9 +249,9 @@ function main {
         if ($MoveItems_H -or $MoveItems_V) {
             notify("Copying new photo(s) to saving folder...")
             cpAction -MoveItems $MoveItems_H -tarPath $LocalPath_H
-            $MoveItems_H.hash | Add-Content $Local_HfhashP
+            (Get-FileHash $MoveItems_H).hash | Add-Content $Local_HfhashP
             cpAction -MoveItems $MoveItems_V -tarPath $LocalPath_V
-            $MoveItems_V.hash | Add-Content $Local_VfhashP
+            (Get-FileHash $MoveItems_V).hash | Add-Content $Local_VfhashP
         }else {
             notify("No new photo(s)!!!")
         }
